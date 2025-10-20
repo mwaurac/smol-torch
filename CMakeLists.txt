@@ -40,6 +40,8 @@ find_package(Python3 COMPONENTS Development.Module REQUIRED)
 
 add_library(smol_torch_core
   smol-torch/src/tensor.c
+        smol-torch/src/dtype.c
+        smol-torch/src/ops.c
 )
 
 add_library(smol_torch MODULE
