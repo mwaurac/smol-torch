@@ -34,4 +34,5 @@ void tensor_free(Tensor* tensor);
 int get_tensor_dtype_size(Dtype dtype);
 int64_t get_tensor_size(const int64_t* shape, int32_t ndim);
 void get_tensor_strides(const int64_t* shape, int64_t* strides, int32_t ndim);
+char* tensor_to_string(const Tensor* t);
 #endif //SMOL_TORCH_TENSOR_H

@@ -216,21 +216,16 @@ static PyObject* PyTensor_shape(PyTensorObject* self, PyObject* Py_UNUSED(ignore
 }
 
 static PyObject* PyTensor_repr(PyTensorObject* self) {
-    // TODO: PRINT DATA AND DEVICE
     if (!self->tensor) {
         return PyUnicode_FromString("Tensor([])");
     }
 
-    void* data = self->tensor->data;
-
-    int32_t ndim = self->tensor->ndim;
-    PyObject* shape_tuple = PyTensor_shape(self, NULL);
-    PyObject* repr = PyUnicode_FromFormat("Tensor(shape=%S, dtype=%s)",
-                                         shape_tuple,
-                                         self->tensor->dtype == DTYPE_FLOAT32 ? "float32" :
-                                         self->tensor->dtype == DTYPE_FLOAT64 ? "float64" :
-                                         self->tensor->dtype == DTYPE_INT32 ? "int32" : "int64");
-    Py_DECREF(shape_tuple);
+    char* s = tensor_to_string(self->tensor);
+    if (!s) {
+        return PyUnicode_FromString("Tensor(<error>)");
+    }
+    PyObject* repr = PyUnicode_FromString(s);
+    free(s);
     return repr;
 }
 static PyMemberDef PyTensor_members[] = {
