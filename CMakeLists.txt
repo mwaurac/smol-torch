@@ -46,6 +46,7 @@ add_library(smol_torch_core
 
 add_library(smol_torch MODULE
   smol-torch/cpython/python_tensor.c
+  smol-torch/cpython/python_module.c
 )
 target_link_libraries(smol_torch PRIVATE smol_torch_core Python3::Module)
 target_include_directories(smol_torch PRIVATE ${Python3_INCLUDE_DIRS})

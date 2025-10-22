@@ -4,15 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ops.h"
 #include "tensor.h"
-
-typedef struct {
-    PyObject_HEAD
-    Tensor* tensor;
-} PyTensorObject;
-
-static PyTypeObject PyTensorType;
+#include "python_tensor.h"
 
 static void PyTensor_dealloc(PyTensorObject* self) {
     if (self->tensor)
@@ -223,37 +216,6 @@ static PyObject* PyTensor_repr(PyTensorObject* self) {
     return repr;
 }
 
-static PyObject* PyTensor_add(PyObject* self, PyObject* args) {
-    PyObject *a_obj, *b_obj;
-    if (!PyArg_ParseTuple(args, "OO", &a_obj, &b_obj)) {
-        return NULL;
-    }
-
-    if (!PyObject_IsInstance(a_obj, (PyObject*)&PyTensorType) ||
-    !PyObject_IsInstance(b_obj, (PyObject*)&PyTensorType)) {
-        PyErr_SetString(PyExc_TypeError, "Arguments must be Tensor objects");
-        return NULL;
-    }
-
-
-    PyTensorObject* a = (PyTensorObject*)a_obj;
-    PyTensorObject* b = (PyTensorObject*)b_obj;
-
-    Tensor* result = add_tensor(a->tensor, b->tensor);
-
-    if (!result) {
-        PyErr_SetString(PyExc_RuntimeError, "Failed to add tensor");
-        return NULL;
-    }
-
-    PyTensorObject* out = PyObject_New(PyTensorObject, &PyTensorType);
-    if (!out) {
-        tensor_free(result);
-        return NULL;
-    }
-    out->tensor = result;
-    return (PyObject*)out;
-}
 static PyMemberDef PyTensor_members[] = {
     {NULL}  // Sentinel
 };
@@ -262,12 +224,6 @@ static PyMethodDef PyTensor_methods[] = {
     {"shape", (PyCFunction)PyTensor_shape, METH_NOARGS, PyTensor_shape__doc__},
     {NULL}  // Sentinel
 };
-
-static PyMethodDef smol_torch_methods[] = {
-    {"add", (PyCFunction)PyTensor_add, METH_VARARGS, "Add two tensors"},
-    {NULL, NULL, 0, NULL}
-};
-
 
 PyDoc_STRVAR(PyTensor__doc__,
 "Tensor(data=None, shape, dtype='float32')\n"
@@ -284,7 +240,7 @@ PyDoc_STRVAR(PyTensor__doc__,
 ">>> t2.shape()\n"
 "(3,)\n");
 
-static PyTypeObject PyTensorType = {
+PyTypeObject PyTensorType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "smol_torch.Tensor",
     .tp_doc = PyTensor__doc__,
@@ -298,27 +254,3 @@ static PyTypeObject PyTensorType = {
     .tp_members = PyTensor_members,
     .tp_methods = PyTensor_methods,
 };
-
-static struct PyModuleDef smol_torch_module = {
-    PyModuleDef_HEAD_INIT,
-    "smol_torch",
-    "A small torch-like library",
-    -1,
-    smol_torch_methods,
-};
-
-PyMODINIT_FUNC PyInit_smol_torch(void) {
-    PyObject* module = PyModule_Create(&smol_torch_module);
-    if (!module) return NULL;
-
-    if (PyType_Ready(&PyTensorType) < 0) return NULL;
-
-    Py_INCREF(&PyTensorType);
-    if (PyModule_AddObject(module, "Tensor", (PyObject*)&PyTensorType) < 0) {
-        Py_DECREF(&PyTensorType);
-        Py_DECREF(module);
-        return NULL;
-    }
-
-    return module;
-}
