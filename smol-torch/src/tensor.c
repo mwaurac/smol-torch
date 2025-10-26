@@ -9,16 +9,6 @@
 #define MAX_PRINT_ELEMENTS 64
 #define TRUNCATE_EDGE 5
 
-int get_tensor_dtype_size(Dtype dtype) {
-    switch (dtype) {
-        case DTYPE_FLOAT32: return sizeof(float);
-        case DTYPE_FLOAT64: return sizeof(double);
-        case DTYPE_INT32: return sizeof(int32_t);
-        case DTYPE_INT64: return sizeof(int64_t);
-        default: return 0;
-    }
-}
-
 int64_t get_tensor_size(const int64_t* shape, const int32_t ndim) {
     if (ndim <= 0) return 0;
     int64_t size = 1;
@@ -239,10 +229,7 @@ static int print_recursive(char** buf, size_t* pos, size_t* cap, const Tensor* t
 char* tensor_to_string(const Tensor* t) {
     if (!t) return strdup("Tensor(NULL)");
 
-    const char* dtype_str =
-        t->dtype == DTYPE_FLOAT32 ? "float32" :
-        t->dtype == DTYPE_FLOAT64 ? "float64" :
-        t->dtype == DTYPE_INT32   ? "int32"   : "int64";
+    const char* dtype_str = dtype_name(t->dtype);
 
     char* buf = NULL;
     size_t cap = 0;

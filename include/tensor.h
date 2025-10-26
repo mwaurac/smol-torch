@@ -3,12 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum {
-    DTYPE_FLOAT32,
-    DTYPE_FLOAT64,
-    DTYPE_INT32,
-    DTYPE_INT64
-} Dtype;
+#include "dtype.h"
+
 
 typedef enum {
     BACKEND_CPU,
@@ -31,7 +27,6 @@ Tensor* create_tensor(int64_t* shape, int ndim, Dtype dtype);
 Tensor* create_tensor_with_data(const void* data, int64_t* shape, int ndim, Dtype dtype);
 void tensor_free(Tensor* tensor);
 
-int get_tensor_dtype_size(Dtype dtype);
 int64_t get_tensor_size(const int64_t* shape, int32_t ndim);
 void get_tensor_strides(const int64_t* shape, int64_t* strides, int32_t ndim);
 char* tensor_to_string(const Tensor* t);

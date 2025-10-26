@@ -5,11 +5,7 @@
 #include <string.h>
 
 #include "tensor.h"
-
-typedef struct {
-    PyObject_HEAD
-    Tensor* tensor;
-} PyTensorObject;
+#include "python_tensor.h"
 
 static void PyTensor_dealloc(PyTensorObject* self) {
     if (self->tensor)
@@ -140,38 +136,29 @@ static int PyTensor_init(PyTensorObject* self, PyObject* args, PyObject* kwds) {
 
         for (Py_ssize_t i = 0; i < data_size; i++) {
             PyObject* item = PyList_GetItem(data_list, i);
-            if (dtype == DTYPE_FLOAT32) {
+
+            if (dtype == DTYPE_FLOAT32 || dtype == DTYPE_FLOAT64) {
                 if (!PyFloat_Check(item) && !PyLong_Check(item)) {
                     free(shape);
                     free(data_buffer);
-                    PyErr_SetString(PyExc_TypeError, "Data elements must be float or int for float32 dtype");
+                    PyErr_Format(PyExc_TypeError, "Data elements for dtype %s must be float or int", dtype_name(dtype));
                     return -1;
                 }
-                ((float*)data_buffer)[i] = (float)PyFloat_AsDouble(item);
-            } else if (dtype == DTYPE_FLOAT64) {
-                if (!PyFloat_Check(item) && !PyLong_Check(item)) {
-                    free(shape);
-                    free(data_buffer);
-                    PyErr_SetString(PyExc_TypeError, "Data elements must be float or int for float64 dtype");
-                    return -1;
-                }
-                ((double*)data_buffer)[i] = PyFloat_AsDouble(item);
-            } else if (dtype == DTYPE_INT32) {
+            } else {
                 if (!PyLong_Check(item)) {
                     free(shape);
                     free(data_buffer);
-                    PyErr_SetString(PyExc_TypeError, "Data elements must be int for int32 dtype");
+                    PyErr_Format(PyExc_TypeError, "Data elements for dtype %s must be int", dtype_name(dtype));
                     return -1;
                 }
-                ((int32_t*)data_buffer)[i] = (int32_t)PyLong_AsLong(item);
-            } else if (dtype == DTYPE_INT64) {
-                if (!PyLong_Check(item)) {
-                    free(shape);
-                    free(data_buffer);
-                    PyErr_SetString(PyExc_TypeError, "Data elements must be int for int64 dtype");
-                    return -1;
-                }
-                ((int64_t*)data_buffer)[i] = PyLong_AsLongLong(item);
+            }
+
+            switch (dtype) {
+                case DTYPE_FLOAT32: ((float*)data_buffer)[i] = (float)PyFloat_AsDouble(item); break;
+                case DTYPE_FLOAT64: ((double*)data_buffer)[i] = PyFloat_AsDouble(item); break;
+                case DTYPE_INT32: ((int32_t*)data_buffer)[i] = (int32_t)PyLong_AsLong(item); break;
+                case DTYPE_INT64: ((int64_t*)data_buffer)[i] = PyLong_AsLongLong(item); break;
+                default: break;
             }
         }
 
@@ -228,6 +215,7 @@ static PyObject* PyTensor_repr(PyTensorObject* self) {
     free(s);
     return repr;
 }
+
 static PyMemberDef PyTensor_members[] = {
     {NULL}  // Sentinel
 };
@@ -252,7 +240,7 @@ PyDoc_STRVAR(PyTensor__doc__,
 ">>> t2.shape()\n"
 "(3,)\n");
 
-static PyTypeObject PyTensorType = {
+PyTypeObject PyTensorType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "smol_torch.Tensor",
     .tp_doc = PyTensor__doc__,
@@ -266,27 +254,3 @@ static PyTypeObject PyTensorType = {
     .tp_members = PyTensor_members,
     .tp_methods = PyTensor_methods,
 };
-
-static struct PyModuleDef smol_torch_module = {
-    PyModuleDef_HEAD_INIT,
-    "smol_torch",
-    "A small torch-like library",
-    -1,
-    NULL, NULL, NULL, NULL, NULL
-};
-
-PyMODINIT_FUNC PyInit_smol_torch(void) {
-    PyObject* module = PyModule_Create(&smol_torch_module);
-    if (!module) return NULL;
-
-    if (PyType_Ready(&PyTensorType) < 0) return NULL;
-
-    Py_INCREF(&PyTensorType);
-    if (PyModule_AddObject(module, "Tensor", (PyObject*)&PyTensorType) < 0) {
-        Py_DECREF(&PyTensorType);
-        Py_DECREF(module);
-        return NULL;
-    }
-
-    return module;
-}
